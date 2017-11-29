@@ -7,42 +7,30 @@ public class BackendGrid extends FloodFill{
     private final int HEIGHT = 15;
     private final int WIDTH = 5;
     
-    private boolean isRunning = false;
-    
     private int level = 1;
-    public int score = 0;
-    public int rowsCleared = 0;
-    
-    /* static final int INITIALGRAVITYDELAY = 500;
-    static final double LEVELUPGRAVITYSCALE = 0.8; //20% faster each level 
-    static final int SCOREROWCLEAR = 100; //maybe multiply rows when clearing mroe than one row at one time
-    static final int SCOREPENTOPLACED = 10;
-    static final int LEVELUPSCORE = 500; //if(rowsCleared % levelupscore == 0) --> lvl up */
+    private int score = 0;
+    private int rowsCleared = 0;
+    private double delay = 500.0;
+    private double speedIncrease = 0.8;
    
     private int[][] gridMatrix;
     private Pentomino fallingBlock = null;
-    private TimeCycle timer; //not used
     
     public BackendGrid() {
     	gridMatrix = new int[HEIGHT][WIDTH];
     	
     }
-    
-    
     public BackendGrid(int height, int width){
         gridMatrix = new int[height][width];
    
     }
+    
     public Pentomino getFallingBlock() {
     	return fallingBlock;
     }
     
     public int[][] getGrid(){
     	return gridMatrix;
-    }
-    
-    public boolean isRunning() {
-    	return isRunning;
     }
     
     public int getLevel() {
@@ -56,36 +44,19 @@ public class BackendGrid extends FloodFill{
     public int getRowsCleared() {
     	return rowsCleared;
     }
-    
-    public void start() {
-    	//TODO: init score etc 
-    	//TODO: start game
-    	//: spawn first block
-    	spawn();
-    	/* timer = new TimeCycle(this, INITIALGRAVITYDELAY, LEVELUPGRAVITYSCALE);
-    	timer.run(); */ //not used
+    public double getSpeed(){
+        return delay;
     }
-    //havent used those methods
-    /* public void pause() {
-    	timer.stopCycle();
-    	isRunning = false; 	
-    } 
-    
-    public void shutDown() {
-    	//TODO: stop Cycle (so that it doesnt keep running in the background
-    	//TODO close window
-    } */
-    
     public boolean gameOverCheck() {
-    	//made it a boolean so that I can use it in GUI
-        if(gridMatrix[2][2] != 0) {		//that means that the X Pentomino cannot be placed in starting position anymore
-    		fallingBlock = null;
-    		System.out.println("GameOver");
+        //gives errors, to be fixed
+        int[][] coordinates = fallingBlock.getCoordinates();
+        for (int i = 0; i < coordinates[0].length; i++){
+           if(gridMatrix[coordinates[1][i]][coordinates[0][i]] != 0) {
+    		//fallingBlock = null; //currently not needed
+    		System.out.println("GameOver"); //will be printed twice due to double use of gameOverCheck(), which is needed
                 return true;
-    	}
-    	//delete fallingBlock
-    	//stop timecycle
-    	//TODO show score screen
+            }              
+    	} 
         return false;
     }
     
@@ -148,7 +119,25 @@ public class BackendGrid extends FloodFill{
             for(int i = 0; i < coords[0].length; i++){
               coords[0][i] += reducedAmountX;
               coords[1][i] += reducedAmountY;
-            }    
+            }
+            /* following code until return is something additionally added
+                if your pentomino is out of the board after rotating it, it will return it to the board
+                the usual games do this and is easier to play, because the board is small and for almost all pentos
+                the rotation works if they are in column 2
+            */
+            for(int i = 0; i < coords[0].length; i++){
+                while(coords[0][i] >= gridMatrix[0].length){
+                    for(int x = 0; x < coords[0].length; x++){
+                        coords[0][x] = coords[0][x] - 1;
+                    }
+                }
+                while(coords[0][i] < 0){
+                    for(int x = 0; x < coords[0].length; x++){
+                        coords[0][x] = coords[0][x] + 1;
+                    }
+                }    
+            }
+            
             return coords;
     }
     public boolean doesCollide(int x, int y){
@@ -211,18 +200,18 @@ public class BackendGrid extends FloodFill{
     }
     
     public void placePento(Pentomino aPentomino){
-    	//TODO check for gameOver
-    	//TODO update score
-        int[][] whereToPlace = aPentomino.getCoordinates();
-        int colorIndex = aPentomino.getColorIndex();
-        for(int i = 0; i < whereToPlace[0].length; i++){
-            gridMatrix[whereToPlace[1][i]][whereToPlace[0][i]] = colorIndex;
-        }
-        gameOverCheck();
+            int[][] whereToPlace = aPentomino.getCoordinates();
+            int colorIndex = aPentomino.getColorIndex();
+            for(int i = 0; i < whereToPlace[0].length; i++){
+                gridMatrix[whereToPlace[1][i]][whereToPlace[0][i]] = colorIndex;
+            }
     }
     
     public void levelUp() {
-    	//TODO
+    	if(score/level >= 500){
+            level++;
+            delay = delay*speedIncrease;
+        }
     }
     
     public ArrayList<Integer> rowsToClear(){
@@ -248,7 +237,9 @@ public class BackendGrid extends FloodFill{
         while(rowsToClear.size() != 0){
           rowsCleared = rowsCleared + rowsToClear.size();
           score = score + 100*rowsToClear.size();
-          System.out.println("Rows cleared: " + rowsCleared + " Score: " + score);
+          levelUp();
+          //for debugging
+          System.out.println("Rows cleared: " + rowsCleared + " Score: " + score + " Level: " + level + " Speed: " + delay);
           /* This part clears a row that rowsToClear returns and then will move everything above it one row down
             until there are no more rows in rowsToClear
           */
@@ -328,11 +319,6 @@ public class BackendGrid extends FloodFill{
             rowsToClear = rowsToClear();
         }
     }
-    
-    public void updateGUI() {
-    	//TODO build this method or make a dependency based GUI
-    }
-    
     
     public void testPrint( Pentomino fallingBlock) {
     
